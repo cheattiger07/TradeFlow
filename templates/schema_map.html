@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+ 
+{% block title %}TradeFlow — Map Columns{% endblock %}
+ 
+{% block head %}
+<style>
+    .map-wrap {
+        max-width: 720px;
+        margin: 48px auto;
+        padding: 0 24px;
+    }
+    .map-header { margin-bottom: 32px; }
+    .map-title {
+        font-family: var(--font-mono);
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+    .map-sub { font-size: 0.875rem; color: var(--text-secondary); }
+ 
+    .map-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    .map-card-header {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .map-card-header span {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+ 
+    .map-row {
+        display: grid;
+        grid-template-columns: 1fr 40px 1fr;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 24px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.1s;
+    }
+    .map-row:last-child { border-bottom: none; }
+    .map-row:hover { background: var(--bg-hover); }
+ 
+    .map-standard {
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--accent);
+    }
+    .map-required-dot {
+        display: inline-block;
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        background: var(--red);
+        margin-left: 6px;
+        vertical-align: middle;
+    }
+    .map-arrow {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+    }
+ 
+    .map-select {
+        width: 100%;
+        padding: 7px 10px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-accent);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    .map-select:focus { border-color: var(--accent); }
+    .map-select option { background: var(--bg-secondary); }
+ 
+    .map-footer {
+        padding: 20px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+ 
+    .confidence-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--amber);
+    }
+    .confidence-bar-wrap {
+        width: 100px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+    .confidence-bar-fill {
+        height: 100%;
+        background: var(--amber);
+        border-radius: 2px;
+    }
+    @media (max-width: 640px) {
+    .map-row {
+        grid-template-columns: 1fr;
+    }
+
+    .map-arrow {
+        display: none;
+    }
+    .confidence-bar-fill {
+    width: var(--progress);
+    }
+}
+</style>
+{% endblock %}
+ 
+{% block body %}
+<div class="map-wrap">
+ 
+    <div class="map-header">
+        <div class="map-title">Map Your Columns</div>
+        <p class="map-sub">
+            TradeFlow couldn't automatically identify all columns in your file
+            (schema confidence: <strong style="color: var(--amber)">{{ confidence * 100 | round | int }}%</strong>).
+            Manually assign each standard field to the correct column from your CSV.
+        </p>
+    </div>
+ 
+    <div class="alert alert-warning" style="margin-bottom: 20px;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0; margin-top:1px;">
+            <path d="M8 1L15 14H1L8 1z" stroke="#f5a623" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M8 6v3.5M8 11v1" stroke="#f5a623" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>Fields marked with a red dot are required for analytics to work correctly.</span>
+    </div>
+ 
+    <form method="POST" action="/schema-confirm">
+        <div class="map-card">
+            <div class="map-card-header">
+                <span>Standard Field</span>
+                <span>Your Column</span>
+            </div>
+ 
+            {% set critical = ['symbol','side','qty','entry_price','exit_price','date'] %}
+            {% set all_fields = ['symbol','side','qty','entry_price','exit_price','pnl','date','strategy'] %}
+ 
+            {% for field in all_fields %}
+            <div class="map-row">
+                <div class="map-standard">
+                    {{ field.replace('_', ' ').upper() }}
+                    {% if field in critical %}<span class="map-required-dot" title="Required"></span>{% endif %}
+                </div>
+                <div class="map-arrow">→</div>
+                <select class="map-select" name="{{ field }}">
+                    <option value="">— skip —</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {{ 'selected' if schema.get(field) == col else '' }}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endfor %}
+ 
+            <div class="map-footer">
+                <div class="confidence-info">
+                    Auto-detected:
+                    <div class="confidence-bar-wrap">
+                        <div class="confidence-bar-fill" style="--progress: {{ (confidence * 100) | round | int }}%;"></div>
+                    </div>
+                    {{ (confidence * 100) | round | int }}%
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <a href="/" class="btn btn-outline btn-sm">← Back</a>
+                    <button type="submit" class="btn btn-primary btn-sm">Confirm Mapping →</button>
+                </div>
+            </div>
+        </div>
+    </form>
+ 
+</div>
+{% endblock %}

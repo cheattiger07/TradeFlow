@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+{% block title %}TradeFlow — Page Not Found{% endblock %}
+{% block body %}
+<div style="min-height: calc(100vh - 56px); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 24px;">
+    <div style="font-family:var(--font-mono); font-size:5rem; font-weight:600; color:var(--border-accent); letter-spacing:-0.04em; line-height:1; margin-bottom:24px;">404</div>
+    <div style="font-family:var(--font-mono); font-size:1rem; color:var(--text-secondary); margin-bottom:8px;">Page not found</div>
+    <p style="font-size:0.875rem; color:var(--text-muted); max-width:360px; margin-bottom:32px;">
+        The page you're looking for doesn't exist. It may have been moved or deleted.
+    </p>
+    <a href="/" class="btn btn-primary">← Back to Upload</a>
+</div>
+{% endblock %}

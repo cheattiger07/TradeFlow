@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+{% block title %}TradeFlow — Server Error{% endblock %}
+{% block body %}
+<div style="min-height: calc(100vh - 56px); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 24px;">
+    <div style="font-family:var(--font-mono); font-size:5rem; font-weight:600; color:var(--red-dim); letter-spacing:-0.04em; line-height:1; margin-bottom:24px; color:#ff4d6a44;">500</div>
+    <div style="font-family:var(--font-mono); font-size:1rem; color:var(--red); margin-bottom:8px;">Internal server error</div>
+    <p style="font-size:0.875rem; color:var(--text-muted); max-width:380px; margin-bottom:32px;">
+        Something went wrong while processing your request. The error has been logged.
+    </p>
+    <a href="/" class="btn btn-primary">← Try again</a>
+</div>
+{% endblock %}
+ 

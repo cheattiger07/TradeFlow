@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+{% block title %}TradeFlow — File Too Large{% endblock %}
+{% block body %}
+<div style="min-height: calc(100vh - 56px); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 24px;">
+    <div style="font-family:var(--font-mono); font-size:5rem; font-weight:600; color:#f5a62344; letter-spacing:-0.04em; line-height:1; margin-bottom:24px;">413</div>
+    <div style="font-family:var(--font-mono); font-size:1rem; color:var(--amber); margin-bottom:8px;">File too large</div>
+    <p style="font-size:0.875rem; color:var(--text-muted); max-width:380px; margin-bottom:32px;">
+        Your file exceeds the 10MB limit. Please reduce its size or split it into smaller exports from your broker.
+    </p>
+    <a href="/" class="btn btn-primary">← Upload a smaller file</a>
+</div>
+{% endblock %}
+ 

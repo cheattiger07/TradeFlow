@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+ 
+{% block title %}TradeFlow — Dashboard{% endblock %}
+ 
+{% block head %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+    .dashboard-wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px 60px; }
+ 
+    /* ── Page header ── */
+    .dash-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .dash-title {
+        font-family: var(--font-mono);
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+    }
+    .dash-subtitle {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        margin-top: 5px;
+    }
+    .dash-subtitle span { color: var(--accent); }
+    .dash-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+ 
+    /* ── Confidence badge ── */
+    .confidence-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 3px;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+    }
+    .confidence-badge.high   { background: var(--green-dim); color: var(--green); border: 1px solid #00d4aa33; }
+    .confidence-badge.medium { background: var(--amber-dim); color: var(--amber); border: 1px solid #f5a62333; }
+    .confidence-badge.low    { background: var(--red-dim);   color: var(--red);   border: 1px solid #ff4d6a33; }
+ 
+    /* ── Metrics grid ── */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+ 
+    /* ── Charts layout ── */
+    .charts-main { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 24px; }
+    .charts-row  { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .charts-row-3{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+ 
+    .chart-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        overflow: hidden;
+    }
+    .chart-title {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+    }
+ 
+    /* Plotly dark theme fix */
+    .chart-card .js-plotly-plot .plotly .svg-container { border-radius: 6px; }
+ 
+    /* ── Behavior grid ── */
+    .behavior-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .behavior-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .behavior-key {
+        font-size: 0.7rem;
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    .behavior-val {
+        font-family: var(--font-mono);
+        font-size: 1.05rem;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    .behavior-val.positive { color: var(--green); }
+    .behavior-val.negative { color: var(--red);   }
+    .behavior-val.warning  { color: var(--amber);  }
+ 
+    /* ── Insights panel ── */
+    .insights-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px 24px;
+        margin-bottom: 24px;
+    }
+ 
+    /* ── Tradebook table card ── */
+    .table-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    .table-card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .table-scroll { overflow-x: auto; max-height: 380px; overflow-y: auto; }
+ 
+    /* Override pandas table HTML */
+    .table-scroll table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 0.8rem !important;
+        font-family: var(--font-mono) !important;
+    }
+    .table-scroll table thead th {
+        padding: 10px 14px !important;
+        font-size: 0.68rem !important;
+        font-weight: 500 !important;
+        color: var(--text-muted) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.1em !important;
+        border-bottom: 1px solid var(--border) !important;
+        background: var(--bg-secondary) !important;
+        text-align: left !important;
+        white-space: nowrap !important;
+        position: sticky; top: 0; z-index: 2;
+    }
+    .table-scroll table tbody td {
+        padding: 8px 14px !important;
+        border-bottom: 1px solid var(--border) !important;
+        color: var(--text-secondary) !important;
+    }
+    .table-scroll table tbody tr:hover { background: var(--bg-hover) !important; }
+ 
+    /* ── Export section ── */
+    .export-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 18px 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .export-label {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+    .export-label strong { color: var(--text-primary); font-weight: 500; }
+    .export-actions { display: flex; gap: 10px; }
+ 
+    @media (max-width: 900px) {
+        .charts-row   { grid-template-columns: 1fr; }
+        .charts-row-3 { grid-template-columns: 1fr; }
+        .dashboard-wrap { padding: 20px 16px 40px; }
+    }
+</style>
+{% endblock %}
+ 
+{% block nav_right %}
+<a href="/" class="btn btn-outline btn-sm">↑ New Upload</a>
+{% endblock %}
+ 
+{% block body %}
+<div class="dashboard-wrap">
+ 
+    <!-- ── Header ── -->
+    <div class="dash-header">
+        <div>
+            <div class="dash-title">Performance Dashboard</div>
+            <div class="dash-subtitle">
+                <span>{{ total_rows }}</span> trades analyzed
+                {% if schema_confidence %}
+                — Schema confidence:
+                    {% if schema_confidence >= 80 %}
+                        <span class="confidence-badge high">{{ schema_confidence }}% match</span>
+                    {% elif schema_confidence >= 60 %}
+                        <span class="confidence-badge medium">{{ schema_confidence }}% match</span>
+                    {% else %}
+                        <span class="confidence-badge low">{{ schema_confidence }}% match</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="dash-actions">
+            <a href="/download/excel" class="btn btn-green btn-sm">↓ Excel</a>
+            <a href="/download/pdf"   class="btn btn-red   btn-sm">↓ PDF Report</a>
+        </div>
+    </div>
+ 
+    <!-- ── Metrics ── -->
+    <p class="section-heading">Performance Metrics</p>
+    <div class="metrics-grid">
+ 
+        <div class="metric-card">
+            <div class="metric-label">Total P&L</div>
+            <div class="metric-value {{ 'positive' if metrics.total_pnl >= 0 else 'negative' }}">
+                ₹{{ "{:,.0f}".format(metrics.total_pnl) }}
+            </div>
+            <div class="metric-accent-bar {{ 'green' if metrics.total_pnl >= 0 else 'red' }}"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Win Rate</div>
+            <div class="metric-value {{ 'positive' if metrics.win_rate >= 50 else 'negative' }}">
+                {{ metrics.win_rate }}%
+            </div>
+            <div class="metric-accent-bar {{ 'green' if metrics.win_rate >= 50 else 'red' }}"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Profit Factor</div>
+            <div class="metric-value {{ 'positive' if metrics.profit_factor >= 1.5 else ('negative' if metrics.profit_factor < 1 else '') }}">
+                {% if metrics.profit_factor == 'inf' or metrics.profit_factor > 999 %}∞
+                {% else %}{{ metrics.profit_factor }}{% endif %}
+            </div>
+            <div class="metric-accent-bar blue"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Expectancy</div>
+            <div class="metric-value {{ 'positive' if metrics.expectancy >= 0 else 'negative' }}">
+                ₹{{ "{:,.0f}".format(metrics.expectancy) }}
+            </div>
+            <div class="metric-accent-bar {{ 'green' if metrics.expectancy >= 0 else 'red' }}"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Max Drawdown</div>
+            <div class="metric-value negative">
+                ₹{{ "{:,.0f}".format(metrics.max_drawdown) }}
+            </div>
+            <div class="metric-accent-bar red"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Sharpe Ratio</div>
+            <div class="metric-value {{ 'positive' if metrics.sharpe_ratio >= 1 else '' }}">
+                {{ metrics.sharpe_ratio }}
+            </div>
+            <div class="metric-accent-bar amber"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Avg Gain</div>
+            <div class="metric-value positive">₹{{ "{:,.0f}".format(metrics.avg_gain) }}</div>
+            <div class="metric-accent-bar green"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Avg Loss</div>
+            <div class="metric-value negative">₹{{ "{:,.0f}".format(metrics.avg_loss) }}</div>
+            <div class="metric-accent-bar red"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">R:R Ratio</div>
+            <div class="metric-value">{{ metrics.rr_ratio }}</div>
+            <div class="metric-accent-bar blue"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Total Trades</div>
+            <div class="metric-value">{{ metrics.total_trades }}</div>
+            <div class="metric-accent-bar"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Largest Win</div>
+            <div class="metric-value positive">₹{{ "{:,.0f}".format(metrics.largest_win) }}</div>
+            <div class="metric-accent-bar green"></div>
+        </div>
+ 
+        <div class="metric-card">
+            <div class="metric-label">Largest Loss</div>
+            <div class="metric-value negative">₹{{ "{:,.0f}".format(metrics.largest_loss) }}</div>
+            <div class="metric-accent-bar red"></div>
+        </div>
+ 
+    </div>
+ 
+    <!-- ── Equity Curve (full width) ── -->
+    <div class="charts-main">
+        <div class="chart-card">
+            <div class="chart-title">Equity Curve</div>
+            {{ equity_chart|safe }}
+        </div>
+    </div>
+ 
+    <!-- ── Drawdown + Win/Loss ── -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <div class="chart-title">Drawdown</div>
+            {{ drawdown|safe }}
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Win / Loss Distribution</div>
+            {{ pie|safe }}
+        </div>
+    </div>
+ 
+    <!-- ── Monthly + Symbol ── -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <div class="chart-title">Monthly P&L</div>
+            {{ monthly|safe }}
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Symbol Performance</div>
+            {{ symbols|safe }}
+        </div>
+    </div>
+ 
+    <!-- ── Behavioral Analytics ── -->
+    <p class="section-heading">Behavioral Analytics</p>
+    <div class="behavior-grid">
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Best Day</div>
+            <div class="behavior-val positive">{{ behavior.best_day or '—' }}</div>
+        </div>
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Worst Day</div>
+            <div class="behavior-val negative">{{ behavior.worst_day or '—' }}</div>
+        </div>
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Max Win Streak</div>
+            <div class="behavior-val positive">{{ behavior.max_win_streak }} trades</div>
+        </div>
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Max Loss Streak</div>
+            <div class="behavior-val negative">{{ behavior.max_loss_streak }} trades</div>
+        </div>
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Current Streak</div>
+            <div class="behavior-val {{ 'positive' if behavior.current_type == 'win' else 'negative' }}">
+                {{ behavior.current_streak }} {{ behavior.current_type or '—' }}
+            </div>
+        </div>
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Overtrading</div>
+            <div class="behavior-val {{ 'warning' if behavior.overtrading else 'positive' }}">
+                {{ 'DETECTED' if behavior.overtrading else 'Clean' }}
+            </div>
+        </div>
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Avg Trades / Day</div>
+            <div class="behavior-val">{{ behavior.avg_trades_per_day }}</div>
+        </div>
+ 
+        <div class="behavior-card">
+            <div class="behavior-key">Revenge Trading</div>
+            <div class="behavior-val {{ 'negative' if behavior.revenge_trading else 'positive' }}">
+                {{ 'DETECTED (' ~ behavior.revenge_count ~ 'x)' if behavior.revenge_trading else 'None' }}
+            </div>
+        </div>
+ 
+        {% if behavior.avg_holding_minutes %}
+        <div class="behavior-card">
+            <div class="behavior-key">Avg Hold Time</div>
+            <div class="behavior-val">{{ behavior.avg_holding_minutes }} min</div>
+        </div>
+        {% endif %}
+ 
+    </div>
+ 
+    <!-- ── AI Insights ── -->
+    <p class="section-heading">AI Insights</p>
+    <div class="insights-panel">
+        {% for item in insights %}
+            {% set level = item.level if item is mapping else 'info' %}
+            {% set text  = item.text  if item is mapping else item %}
+            <div class="insight-item insight-{{ level }}">
+                {% if level == 'danger' %}⚠{% elif level == 'warning' %}→{% else %}✓{% endif %}
+                {{ text }}
+            </div>
+        {% endfor %}
+    </div>
+ 
+    <!-- ── Tradebook Preview ── -->
+    <p class="section-heading">Processed Tradebook (first 50 rows)</p>
+    <div class="table-card">
+        <div class="table-card-header">
+            <span class="behavior-key">Raw Data Preview</span>
+            <span class="confidence-badge high">{{ total_rows }} total rows</span>
+        </div>
+        <div class="table-scroll">
+            {{ preview|safe }}
+        </div>
+    </div>
+ 
+    <!-- ── Export Bar ── -->
+    <div class="export-bar">
+        <div class="export-label">
+            <strong>Export your report</strong> — Download full analysis as PDF or Excel
+        </div>
+        <div class="export-actions">
+            <a href="/download/excel" class="btn btn-green">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                    <path d="M7.5 1v9M3.5 6l4 5 4-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 13h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Download Excel
+            </a>
+            <a href="/download/pdf" class="btn btn-red">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                    <path d="M7.5 1v9M3.5 6l4 5 4-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 13h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Download PDF
+            </a>
+        </div>
+    </div>
+ 
+</div>
+{% endblock %}

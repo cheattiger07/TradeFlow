@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+uploads/
+exports/
+flask_session/
+*.parquet
+*.xlsx
+*.pdf
+.DS_Store
